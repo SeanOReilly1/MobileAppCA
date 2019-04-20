@@ -1,5 +1,9 @@
 package ie.dbs.mobileappca;
 
+import android.content.BroadcastReceiver;
+import android.content.IntentFilter;
+import android.net.ConnectivityManager;
+import android.support.design.widget.Snackbar;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.content.Context;
@@ -33,7 +37,33 @@ import java.util.List;
 import java.util.Map;
 
 public class ModulesActivity extends AppCompatActivity {
+    public class Broadcast extends BroadcastReceiver {
+        @Override
+        public void onReceive(Context context, Intent intent){
 
+            //if(ConnectivityManager.CONNECTIVITY_ACTION.equals(intent.getAction())){
+            boolean noConnectivity = intent.getBooleanExtra(ConnectivityManager.EXTRA_NO_CONNECTIVITY,false);
+            if (noConnectivity){
+
+                noInternet.show();
+            }
+
+            else {
+                if (noInternet != null && noInternet.isShown()) {
+                    noInternet.dismiss();
+                    isInternet.show();
+                    // Toast.makeText(context, "Connected", Toast.LENGTH_SHORT).show();
+                }
+
+            }
+
+            //}
+        }
+    }
+
+    Snackbar noInternet;
+    Snackbar isInternet;
+    Broadcast br = new Broadcast();
     public static RequestQueue queue;
     TextView name;
     private String Id;
@@ -46,6 +76,8 @@ public class ModulesActivity extends AppCompatActivity {
         setContentView(R.layout.activity_modules);
         database = AppDatabase.getDatabase(getApplicationContext());
         user = database.userDAO().getUser();
+        noInternet = Snackbar.make(findViewById(android.R.id.content), "No Internet",Snackbar.LENGTH_INDEFINITE);
+        isInternet = Snackbar.make(findViewById(android.R.id.content), "Connected", Snackbar.LENGTH_SHORT);
         //Intent getUser = getIntent();
         //Id = getUser.getStringExtra("UserID");
         //Id = user.User_ID;
@@ -133,6 +165,19 @@ public class ModulesActivity extends AppCompatActivity {
     },1000);
         }
         return true;
+    }
+
+    @Override
+    protected  void onStart(){
+        super.onStart();
+        IntentFilter filter = new IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION);
+        registerReceiver(br,filter);
+    }
+
+    @Override
+    protected  void onStop(){
+        super.onStop();
+        unregisterReceiver(br);
     }
 
     public static Map<String, Object> toMap(JSONObject object) throws JSONException

@@ -1,9 +1,12 @@
 package ie.dbs.mobileappca;
 
 import android.app.Activity;
+import android.content.BroadcastReceiver;
+import android.content.Context;
 import android.content.IntentFilter;
 import android.net.ConnectivityManager;
 import android.os.Handler;
+import android.support.design.widget.Snackbar;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.content.Intent;
@@ -36,8 +39,37 @@ import java.util.Map;
 import static java.util.stream.Collectors.toList;
 
 public class LoginActivity extends AppCompatActivity {
+    public class Broadcast extends BroadcastReceiver {
 
-    Broadcast br = new Broadcast();
+        @Override
+        public void onReceive(Context context, Intent intent){
+
+            //if(ConnectivityManager.CONNECTIVITY_ACTION.equals(intent.getAction())){
+                boolean noConnectivity = intent.getBooleanExtra(ConnectivityManager.EXTRA_NO_CONNECTIVITY,false);
+                if (noConnectivity){
+
+                    noInternet.show();
+                }
+
+                else {
+                    if (noInternet != null && noInternet.isShown()) {
+                        noInternet.dismiss();
+                        isInternet.show();
+                        // Toast.makeText(context, "Connected", Toast.LENGTH_SHORT).show();
+                    }
+
+                }
+
+            //}
+        }
+
+
+
+    }
+    Snackbar noInternet;
+    Snackbar isInternet;
+    Broadcast internet = new Broadcast();
+   // Broadcast br = new Broadcast();
     private Button SubmitButton;
     public EditText Email;
     public EditText Password;
@@ -50,9 +82,16 @@ public class LoginActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_login);
 
+
+
+
+
+        noInternet = Snackbar.make(findViewById(android.R.id.content), "No Internet",Snackbar.LENGTH_INDEFINITE);
+        isInternet = Snackbar.make(findViewById(android.R.id.content), "Connected", Snackbar.LENGTH_SHORT);
         SubmitButton = findViewById(R.id.submit);
         Email = findViewById(R.id.email);
         Password = findViewById(R.id.password);
+        mResult = findViewById(R.id.error);
 
 
         SubmitButton.setOnClickListener( new View.OnClickListener(){
@@ -98,11 +137,15 @@ public class LoginActivity extends AppCompatActivity {
                                         //intent.putExtra("UserID", id );
                                         startActivity(intent);
 
+                                        mResult.setText("Welcome " + ((HashMap<String,Object>)loginResponse.get("user")).toString() + "\n\n\n" + response);
+                                        finish();
+
 
                                     }
                                     else
                                     {
-                                        Log.v("error", loginResponse.get("message").toString());
+                                        mResult.setText("error" + loginResponse.get("message").toString());
+                                        Log.v("error ", loginResponse.get("message").toString());
                                         Toast.makeText(LoginActivity.this, "Invalid Login", Toast.LENGTH_SHORT).show();
                                     }
                                 }
@@ -146,14 +189,18 @@ public class LoginActivity extends AppCompatActivity {
     @Override
     protected  void onStart(){
         super.onStart();
-        IntentFilter filter = new IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION);
-        registerReceiver(br,filter);
+
+
+        IntentFilter filter = new IntentFilter();
+        filter.addAction(ConnectivityManager.CONNECTIVITY_ACTION);
+        registerReceiver(internet,filter);
     }
 
     @Override
     protected  void onStop(){
         super.onStop();
-        unregisterReceiver(br);
+
+        //unregisterReceiver(internet);
     }
 
     public static Map<String, Object> toMap(JSONObject object) throws JSONException {
